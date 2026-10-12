@@ -19,6 +19,7 @@ const faIcons = [
   "Clipboard",
   "Dice",
   "Dragon",
+  "Envelope",
   "ExchangeAlt",
   "ExclamationTriangle",
   "FileCode",

@@ -4,6 +4,18 @@ module.exports = store => {
       isPublic ? "Town Square" : "Grimoire"
     }`);
 
+  const getOrCreatePlayerId = () => {
+    const key = "playerId";
+    let playerId = sessionStorage.getItem(key);
+    if (!playerId) {
+      playerId = `local-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 8)}`;
+      sessionStorage.setItem(key, playerId);
+    }
+    return playerId;
+  };
+
   // initialize data
   if (localStorage.getItem("background")) {
     store.commit("setBackground", localStorage.background);
@@ -60,11 +72,13 @@ module.exports = store => {
     );
   }
   /**** Session related data *****/
-  if (localStorage.getItem("playerId")) {
-    store.commit("session/setPlayerId", localStorage.getItem("playerId"));
+  if (sessionStorage.getItem("playerId")) {
+    store.commit("session/setPlayerId", sessionStorage.getItem("playerId"));
+  } else {
+    store.commit("session/setPlayerId", getOrCreatePlayerId());
   }
-  if (localStorage.getItem("session") && !window.location.hash.substr(1)) {
-    const [spectator, sessionId] = JSON.parse(localStorage.getItem("session"));
+  if (sessionStorage.getItem("session") && !window.location.hash.substr(1)) {
+    const [spectator, sessionId] = JSON.parse(sessionStorage.getItem("session"));
     store.commit("session/setSpectator", spectator);
     store.commit("session/setSessionId", sessionId);
   }
@@ -168,19 +182,19 @@ module.exports = store => {
         break;
       case "session/setSessionId":
         if (payload) {
-          localStorage.setItem(
+          sessionStorage.setItem(
             "session",
             JSON.stringify([state.session.isSpectator, payload])
           );
         } else {
-          localStorage.removeItem("session");
+          sessionStorage.removeItem("session");
         }
         break;
       case "session/setPlayerId":
         if (payload) {
-          localStorage.setItem("playerId", payload);
+          sessionStorage.setItem("playerId", payload);
         } else {
-          localStorage.removeItem("playerId");
+          sessionStorage.removeItem("playerId");
         }
         break;
     }

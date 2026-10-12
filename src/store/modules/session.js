@@ -27,7 +27,11 @@ const state = () => ({
   voteHistory: [],
   markedPlayer: -1,
   isVoteHistoryAllowed: true,
-  isRolesDistributed: false
+  isRolesDistributed: false,
+  chatMessages: [],
+  chatTabs: [],
+  chatOpen: null,
+  chatFlight: null
 });
 
 const getters = {};
@@ -37,6 +41,11 @@ const actions = {};
 // mutations helper functions
 const set = key => (state, val) => {
   state[key] = val;
+};
+
+const getChatKey = (fromIndex, toIndex) => {
+  const [first, second] = [fromIndex, toIndex].sort((a, b) => a - b);
+  return `${first}-${second}`;
 };
 
 const mutations = {
@@ -93,6 +102,68 @@ const mutations = {
   },
   clearVoteHistory(state) {
     state.voteHistory = [];
+  },
+  openChat(state, { fromIndex, toIndex } = {}) {
+    if (fromIndex === undefined || toIndex === undefined) {
+      state.chatOpen = null;
+      return;
+    }
+    const key = getChatKey(fromIndex, toIndex);
+    let tab = state.chatTabs.find(chat => chat.key === key);
+    if (!tab) {
+      tab = { key, fromIndex, toIndex, unread: 0 };
+      state.chatTabs.push(tab);
+    } else {
+      tab.fromIndex = fromIndex;
+      tab.toIndex = toIndex;
+    }
+    tab.unread = 0;
+    state.chatOpen = { fromIndex, toIndex };
+  },
+  closeChat(state) {
+    state.chatOpen = null;
+  },
+  clearChatFlight(state) {
+    state.chatFlight = null;
+  },
+  addChatMessage(state, payload = {}) {
+    if (!payload || !payload.message) return;
+    const message = {
+      id: payload.id || `${Date.now()}-${Math.random().toString(36).substr(2, 8)}`,
+      from: payload.from || "",
+      to: payload.to || "",
+      fromName: payload.fromName || "Player",
+      toName: payload.toName || "Player",
+      fromIndex: payload.fromIndex,
+      toIndex: payload.toIndex,
+      message: payload.message,
+      timestamp: payload.timestamp || new Date().toISOString()
+    };
+    state.chatMessages.push(message);
+    state.chatMessages = state.chatMessages.slice(-200);
+    if (message.fromIndex !== undefined && message.toIndex !== undefined) {
+      const key = getChatKey(message.fromIndex, message.toIndex);
+      let tab = state.chatTabs.find(chat => chat.key === key);
+      if (!tab) {
+        tab = { key, fromIndex: message.fromIndex, toIndex: message.toIndex, unread: 0 };
+        state.chatTabs.push(tab);
+      }
+      const isCurrentChat =
+        state.chatOpen &&
+        state.chatOpen.fromIndex === message.fromIndex &&
+        state.chatOpen.toIndex === message.toIndex;
+      if (payload.isFromSocket && !isCurrentChat) {
+        tab.unread = (tab.unread || 0) + 1;
+        state.chatOpen = { fromIndex: message.fromIndex, toIndex: message.toIndex };
+      } else if (!payload.isFromSocket || isCurrentChat) {
+        tab.unread = 0;
+      }
+      state.chatFlight = {
+        fromIndex: message.fromIndex,
+        toIndex: message.toIndex,
+        id: message.id
+      };
+    }
   },
   /**
    * Store a vote with and without syncing it to the live session.

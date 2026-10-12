@@ -117,6 +117,16 @@
 
       <transition name="fold">
         <ul class="menu" v-if="isMenuOpen">
+          <template v-if="session.isSpectator && player.id === session.playerId">
+            <li
+              @click="openDirectChat(neighborIndex)"
+              v-for="neighborIndex in adjacentPlayerIndexes"
+              :key="neighborIndex"
+            >
+              <font-awesome-icon icon="envelope" />
+              Chat with {{ players[neighborIndex].name }}
+            </li>
+          </template>
           <li
             @click="changePronouns"
             v-if="
@@ -225,6 +235,27 @@ export default {
     index: function() {
       return this.players.indexOf(this.player);
     },
+    adjacentPlayerIndexes: function() {
+      if (
+        !this.session.sessionId ||
+        !this.session.isSpectator ||
+        !this.session.playerId ||
+        this.player.id !== this.session.playerId ||
+        !this.players.length
+      ) {
+        return [];
+      }
+      const neighbors = [this.index - 1, this.index + 1].map(
+        index => (index + this.players.length) % this.players.length
+      );
+      return neighbors.filter(
+        index =>
+          index !== this.index &&
+          this.players[index] &&
+          this.players[index].id &&
+          this.players[index].id !== this.session.playerId
+      );
+    },
     voteLocked: function() {
       const session = this.session;
       const players = this.players.length;
@@ -253,6 +284,20 @@ export default {
     };
   },
   methods: {
+    openDirectChat(neighborIndex) {
+      if (
+        !this.session.isSpectator ||
+        !this.players[neighborIndex] ||
+        this.players[neighborIndex].id === this.session.playerId
+      ) {
+        return;
+      }
+      this.$store.commit("session/openChat", {
+        fromIndex: this.index,
+        toIndex: neighborIndex
+      });
+      this.isMenuOpen = false;
+    },
     changePronouns() {
       if (this.session.isSpectator && this.player.id !== this.session.playerId)
         return;

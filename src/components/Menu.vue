@@ -244,6 +244,10 @@ export default {
     };
   },
   methods: {
+    clearLocalSessionState() {
+      ["players", "bluffs", "fabled"].forEach(key => localStorage.removeItem(key));
+      sessionStorage.removeItem("session");
+    },
     setBackground() {
       const background = prompt("Enter custom background URL");
       if (background || background === "") {
@@ -257,6 +261,8 @@ export default {
         Math.round(Math.random() * 10000)
       );
       if (sessionId) {
+        this.clearLocalSessionState();
+        this.$store.commit("players/clear");
         this.$store.commit("session/clearVoteHistory");
         this.$store.commit("session/setSpectator", false);
         this.$store.commit("session/setSessionId", sessionId);
@@ -298,6 +304,8 @@ export default {
         sessionId = sessionId.split("#").pop();
       }
       if (sessionId) {
+        this.clearLocalSessionState();
+        this.$store.commit("players/clear");
         this.$store.commit("session/clearVoteHistory");
         this.$store.commit("session/setSpectator", true);
         this.$store.commit("toggleGrimoire", false);
@@ -306,6 +314,8 @@ export default {
     },
     leaveSession() {
       if (confirm("Are you sure you want to leave the active live game?")) {
+        this.clearLocalSessionState();
+        this.$store.commit("players/clear");
         this.$store.commit("session/setSpectator", false);
         this.$store.commit("session/setSessionId", "");
       }

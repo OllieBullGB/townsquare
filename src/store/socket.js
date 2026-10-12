@@ -1,7 +1,9 @@
 class LiveSession {
   constructor(store) {
-    this._wss = "wss://live.clocktower.online:8080/";
-    // this._wss = "ws://localhost:8081/"; // uncomment if using local server with NODE_ENV=development
+    const localHosts = ["localhost", "127.0.0.1", "::1"];
+    this._wss = localHosts.includes(window.location.hostname)
+      ? "ws://localhost:8081/"
+      : "wss://live.clocktower.online:8080/";
     this._socket = null;
     this._isSpectator = true;
     this._gamestate = [];
@@ -204,6 +206,9 @@ class LiveSession {
         break;
       case "pronouns":
         this._updatePlayerPronouns(params);
+        break;
+      case "chat":
+        this._handleChat(params);
         break;
     }
   }
@@ -540,6 +545,37 @@ class LiveSession {
   }
 
   /**
+   * Handle a private player chat message.
+   * @param payload
+   * @private
+   */
+  _handleChat(payload) {
+    if (!payload || !payload.message) return;
+    const localPlayerId = this._store.state.session.playerId;
+    const isHost = !this._isSpectator;
+    const isRelevantToThisPlayer =
+      isHost ||
+      payload.from === localPlayerId ||
+      payload.to === localPlayerId;
+    if (!isRelevantToThisPlayer) return;
+    const players = this._store.state.players.players;
+    const fromIndex =
+      payload.fromIndex !== undefined
+        ? payload.fromIndex
+        : players.findIndex(player => player.id === payload.from);
+    const toIndex =
+      payload.toIndex !== undefined
+        ? payload.toIndex
+        : players.findIndex(player => player.id === payload.to);
+    this._store.commit("session/addChatMessage", {
+      ...payload,
+      fromIndex,
+      toIndex,
+      isFromSocket: true
+    });
+  }
+
+  /**
    * Handle a ping message by another player / storyteller
    * @param playerIdOrCount
    * @param latency
@@ -654,6 +690,24 @@ class LiveSession {
    */
   distributeRoles() {
     if (this._isSpectator) return;
+
+    // Keep the host's local board in sync with the same role payload being sent
+    // to seated players. This prevents stale host state when the role assignment
+    // was changed locally but the direct-message path only targets player ids.
+    this._store.state.players.players.forEach((player, index) => {
+      if (player && player.role && player.role.id) {
+        this._gamestate[index] = {
+          ...this._gamestate[index],
+          name: player.name,
+          id: player.id,
+          isDead: player.isDead,
+          isVoteless: player.isVoteless,
+          pronouns: player.pronouns,
+          roleId: player.role.id
+        };
+      }
+    });
+
     const message = {};
     this._store.state.players.players.forEach((player, index) => {
       if (player.id && player.role) {
@@ -723,6 +777,15 @@ class LiveSession {
     if (votingSpeed) {
       this._send("votingSpeed", votingSpeed);
     }
+  }
+
+  /**
+   * Send a private adjacent-player chat message.
+   * @param payload
+   */
+  sendChatMessage(payload) {
+    if (!payload || !payload.message || !payload.to || !payload.from) return;
+    this._send("chat", payload);
   }
 
   /**
@@ -892,6 +955,13 @@ export default store => {
         break;
       case "session/setMarkedPlayer":
         session.setMarked(payload);
+        break;
+      case "session/addChatMessage":
+        if (!payload || payload.isFromSocket) break;
+        session.sendChatMessage(payload);
+        window.setTimeout(() => {
+          store.commit("session/clearChatFlight");
+        }, 1000);
         break;
       case "players/swap":
         session.swapPlayer(payload);

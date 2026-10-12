@@ -121,31 +121,39 @@ export default {
       });
     },
     assignRoles() {
-      if (this.selectedRoles <= this.nonTravelers && this.selectedRoles) {
-        // generate list of selected roles and randomize it
-        const roles = Object.values(this.roleSelection)
-          .map(roles =>
-            roles
-              // duplicate roles selected more than once and filter unselected
-              .reduce((a, r) => [...a, ...Array(r.selected).fill(r)], [])
-          )
-          // flatten into a single array
-          .reduce((a, b) => [...a, ...b], [])
-          .map(a => [Math.random(), a])
-          .sort((a, b) => a[0] - b[0])
-          .map(a => a[1]);
-        this.players.forEach(player => {
-          if (player.role.team !== "traveler" && roles.length) {
-            const value = roles.pop();
-            this.$store.commit("players/update", {
-              player,
-              property: "role",
-              value
-            });
-          }
-        });
-        this.$store.commit("toggleModal", "roles");
+      const activePlayers = this.players.filter(player => player);
+      const validRoleCount = Math.min(this.selectedRoles, activePlayers.length);
+      if (!validRoleCount) {
+        console.warn("[TownSquare] No roles selected for assignment");
+        return;
       }
+
+      const roles = Object.values(this.roleSelection)
+        .map(roles =>
+          roles.reduce(
+            (acc, role) => [...acc, ...Array(role.selected || 0).fill(role)],
+            []
+          )
+        )
+        .reduce((acc, list) => [...acc, ...list], [])
+        .map(role => [Math.random(), role])
+        .sort((a, b) => a[0] - b[0])
+        .map(([, role]) => role);
+
+      const assigned = [];
+      activePlayers.forEach(player => {
+        if (!roles.length) return;
+        const role = roles.pop();
+        this.$store.commit("players/update", {
+          player,
+          property: "role",
+          value: role
+        });
+        assigned.push({ name: player.name || "Player", role: role.name });
+      });
+
+      console.info("[TownSquare] assigned roles", assigned);
+      this.$store.commit("toggleModal", "roles");
     },
     ...mapMutations(["toggleModal"])
   },

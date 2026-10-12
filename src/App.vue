@@ -26,7 +26,7 @@
       <TownInfo v-if="players.length && !session.nomination"></TownInfo>
       <Vote v-if="session.nomination"></Vote>
     </transition>
-    <TownSquare></TownSquare>
+    <TownSquare ref="townSquare"></TownSquare>
     <Menu ref="menu"></Menu>
     <EditionModal />
     <FabledModal />
@@ -85,6 +85,7 @@ export default {
   methods: {
     keyup({ key, ctrlKey, metaKey }) {
       if (ctrlKey || metaKey) return;
+      if (this.$refs.townSquare && this.$refs.townSquare.isChatMenuOpen) return;
       switch (key.toLocaleLowerCase()) {
         case "g":
           this.$store.commit("toggleGrimoire");
