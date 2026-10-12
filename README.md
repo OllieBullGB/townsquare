@@ -1,13 +1,24 @@
 # Blood on the Clocktower Grimoire & Town Square
 
-> :warning: **This project is no longer actively maintained** and will only receive critical bug fixes. :warning:
+> :warning: **This is a personal local fork** of [bra1n/townsquare](https://github.com/bra1n/townsquare). It is not actively maintained beyond the handful of tweaks I made for my own group, and it is not intended to replace or compete with the original. :warning:
 
 ![social](https://user-images.githubusercontent.com/325521/102897760-d1147b00-4468-11eb-9d7b-63a204bc9fc1.png)
 
 This is an unofficial online tool to run Blood on the Clocktower games through Discord or other digital means.
 It is supposed to aid storytellers and players by allowing them to quickly set up games, run votes and much more.
 
-[You can try it online!](https://clocktower.online)
+## About this fork
+
+The upstream project ([bra1n/townsquare](https://github.com/bra1n/townsquare)) is great, but a few small things
+annoyed me during games with friends. Rather than wait on changes that might never land upstream (the original is
+no longer actively maintained), I forked it locally and made the tweaks I wanted so my group could have a more
+customised experience.
+
+**This is a hobby fork for personal use, not a formal successor or replacement.** I make no promises about keeping
+it in sync with upstream, and it may contain changes that only make sense for my table. If you want the maintained,
+canonical version, use the original repo instead. Pull requests here are unlikely to be reviewed.
+
+[You can try the original online!](https://clocktower.online)
 
 If you want to learn more about how to use the app as a player, [JayBotC](https://www.youtube.com/channel/UCNZy-4Rp877XtTHaIZdWYFQ) kindly created two tutorial videos.
 
