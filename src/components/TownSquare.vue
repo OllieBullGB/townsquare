@@ -569,8 +569,16 @@ export default {
     sendChatMessage() {
       if (!this.session.chatOpen) return;
       const { fromIndex, toIndex } = this.session.chatOpen;
-      const fromPlayer = this.players[fromIndex];
-      const toPlayer = this.players[toIndex];
+      // `chatOpen` records the direction of whoever sent the *first* message in
+      // the thread - which may point from another player to us. Always send as
+      // the local player, otherwise replies get attributed to the first sender.
+      const selfIndex = this.players.findIndex(
+        player => player.id === this.session.playerId
+      );
+      if (selfIndex < 0) return;
+      const otherIndex = fromIndex === selfIndex ? toIndex : fromIndex;
+      const fromPlayer = this.players[selfIndex];
+      const toPlayer = this.players[otherIndex];
       if (!fromPlayer || !toPlayer || !fromPlayer.id || !toPlayer.id) return;
       const message = this.chatDraft.trim();
       if (!message) return;
@@ -579,8 +587,8 @@ export default {
         to: toPlayer.id,
         fromName: fromPlayer.name || "Player",
         toName: toPlayer.name || "Player",
-        fromIndex,
-        toIndex,
+        fromIndex: selfIndex,
+        toIndex: otherIndex,
         message,
         timestamp: new Date().toISOString()
       });
