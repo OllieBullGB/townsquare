@@ -1,9 +1,10 @@
 class LiveSession {
   constructor(store) {
     const localHosts = ["localhost", "127.0.0.1", "::1"];
-    this._wss = localHosts.includes(window.location.hostname)
+    const defaultHost = localHosts.includes(window.location.hostname)
       ? "ws://localhost:8081/"
       : "wss://live.clocktower.online:8080/";
+    this._wss = process.env.VUE_APP_WS_URL || defaultHost;
     this._socket = null;
     this._isSpectator = true;
     this._gamestate = [];
