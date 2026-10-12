@@ -1,4 +1,5 @@
 const fs = require("fs");
+const http = require("http");
 const https = require("https");
 const WebSocket = require("ws");
 const client = require("prom-client");
@@ -12,21 +13,30 @@ register.setDefaultLabels({
 
 const PING_INTERVAL = 30000; // 30 seconds
 
-const options = {};
+const isDevelopment = process.env.NODE_ENV === "development";
 
-if (process.env.NODE_ENV !== "development") {
-  options.cert = fs.readFileSync("cert.pem");
-  options.key = fs.readFileSync("key.pem");
-}
+// Origins allowed to open a live session. Override with the ALLOWED_ORIGINS
+// env var (a regex string) when hosting the frontend on your own domain.
+const originPattern = process.env.ALLOWED_ORIGINS
+  ? new RegExp(process.env.ALLOWED_ORIGINS, "i")
+  : /^https?:\/\/([^.]+\.github\.io|localhost|clocktower\.online|eddbra1nprivatetownsquare\.xyz|[\w-]+\.onrender\.com|[\w.-]+\.vercel\.app)/i;
 
-const server = https.createServer(options);
+// TLS is optional. Platforms like Render terminate TLS for you and pass the
+// port via PORT, so we only load a local cert/key pair when it actually exists.
+const certPath = process.env.SSL_CERT || "cert.pem";
+const keyPath = process.env.SSL_KEY || "key.pem";
+const hasTls = !isDevelopment && fs.existsSync(certPath) && fs.existsSync(keyPath);
+
+const server = hasTls
+  ? https.createServer({
+      cert: fs.readFileSync(certPath),
+      key: fs.readFileSync(keyPath)
+    })
+  : http.createServer();
+
 const wss = new WebSocket.Server({
-  ...(process.env.NODE_ENV === "development" ? { port: 8081 } : { server }),
-  verifyClient: info =>
-    info.origin &&
-    !!info.origin.match(
-      /^https?:\/\/([^.]+\.github\.io|localhost|clocktower\.online|eddbra1nprivatetownsquare\.xyz)/i
-    )
+  ...(isDevelopment ? { port: 8081 } : { server }),
+  verifyClient: info => info.origin && !!info.origin.match(originPattern)
 });
 
 function noop() {}
@@ -250,9 +260,10 @@ wss.on("close", function close() {
 });
 
 // prod mode with stats API
-if (process.env.NODE_ENV !== "development") {
-  console.log("server starting");
-  server.listen(8080);
+if (!isDevelopment) {
+  const port = process.env.PORT || 8080;
+  console.log(`server starting on port ${port}`);
+  server.listen(port, "0.0.0.0");
   server.on("request", (req, res) => {
     res.setHeader("Content-Type", register.contentType);
     register.metrics().then(out => res.end(out));
