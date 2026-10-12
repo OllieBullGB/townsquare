@@ -133,3 +133,8 @@ This project and its website are provided free of charge and not affiliated with
 This project will always be available free of charge, since I love building cool things and playing Blood on the Clocktower. If you still want to support me with a donation, you can do that here:
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/bra1n)
+
+## Self-hosted deployment notes
+
+- Frontend (Vercel): build with `npm run build`, output `dist`, set `VUE_APP_WS_URL=wss://<your-service>.onrender.com/` (trailing slash, no port) and redeploy so the value is inlined at build time.
+- Live session server (Render): start with `node index.js`; TLS is terminated by the platform, `PORT` is read from the environment, and origins are controlled via the optional `ALLOWED_ORIGINS` regex env var.
